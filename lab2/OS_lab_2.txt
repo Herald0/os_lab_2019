@@ -1,0 +1,41 @@
+¹1
+cd lab2/src/swap
+gcc -o outputfile main.c swap.c swap.h
+b a
+
+¹2
+cd ../revert_string
+gcc -o outputfile main.c revert_string.c revert_string.h
+./outputfile  rabbit
+Reverted: tibbar
+
+¹3
+gcc -c revert_string.c -o revert_string.o
+ar rcs librevert.a revert_string.o
+gcc main.c -L. -lrevert -o main_static
+gcc -fPIC -c revert_string.c -o revert_string.o
+gcc -shared -o librevert.so revert_string.o
+gcc main.c -L. -lrevert -o main_dynamic
+./main_static rabbit
+Reverted: tibbar
+export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
+./main_dynamic rabbit
+Reverted: tibbar
+
+¹4
+gcc -o tests tests.c -L. -lrevert -lcunit
+export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
+./tests
+ CUnit - A unit testing framework for C - Version 2.1-3
+     http://cunit.sourceforge.net/
+
+
+Suite: Suite
+  Test: test of RevertString function ...passed
+
+Run Summary:    Type  Total    Ran Passed Failed Inactive
+              suites      1      1    n/a      0        0
+               tests      1      1      1      0        0
+             asserts      4      4      4      0      n/a
+
+Elapsed time =    0.000 seconds
