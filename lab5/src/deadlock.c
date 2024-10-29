@@ -7,7 +7,6 @@ pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
 
 void* thread_function1(void* arg) {
-    // Захват первого мьютекса
     pthread_mutex_lock(&mutex1);
     printf("Thread 1: Acquired mutex1\n");
     sleep(1);

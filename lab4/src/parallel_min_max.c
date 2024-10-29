@@ -20,7 +20,7 @@ int pnum = -1;
 pid_t *child_pids = NULL;
 
 void handle_alarm(int sig) {
-    printf("Timeout reached. Terminating child processes...\n");
+    printf("Время вышло.\n");
     for (int i = 0; i < pnum; i++) {
         if (child_pids[i] > 0) {
             kill(child_pids[i], SIGKILL);
@@ -109,9 +109,6 @@ int main(int argc, char **argv) {
         alarm(timeout);
     }
 
-    // while (1) {
-        
-    // }
 
     child_pids = malloc(sizeof(pid_t) * pnum);
     for (int i = 0; i < pnum; i++) {
@@ -121,6 +118,9 @@ int main(int argc, char **argv) {
             active_child_processes += 1;
             if (child_pid == 0) 
             {
+                while (1) {
+
+                }
                 int chunk_size = array_size / pnum;
                 int start_index = i * chunk_size;
                 int end_index = (i == pnum - 1) ? array_size : start_index + chunk_size;

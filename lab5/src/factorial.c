@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (k < 0 || pnum < 1 || mod < 1) {
-        fprintf(stderr, "Invalid arguments.\n");
+        fprintf(stderr, "некорректные аргументы.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
 
-    printf("Factorial of %d modulo %d is: %lld\n", k, mod, result);
+    printf("Факториал %d по модулю %d = %lld\n", k, mod, result);
 
     pthread_mutex_destroy(&mutex);
 
