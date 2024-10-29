@@ -23,8 +23,28 @@ void testRevertString(void) {
   CU_ASSERT_STRING_EQUAL_FATAL(str_with_even_chars_num, "dcba");
 }
 
+void testRevertString2(void) {
+  char string1[] = "";
+  char string2[] = " ";
+  char string3[] = "*&^%#($*`";
+  char string4[] = "012_52+2M";
+
+  RevertString(string1);
+  CU_ASSERT_STRING_EQUAL_FATAL(string1, "");
+
+  RevertString(string2);
+  CU_ASSERT_STRING_EQUAL_FATAL(string2, " ");
+
+  RevertString(string3);
+  CU_ASSERT_STRING_EQUAL_FATAL(string3, "`*$(#%^&*");
+
+  RevertString(string4);
+  CU_ASSERT_STRING_EQUAL_FATAL(string4, "M2+52_210");
+}
+
 int main() {
   CU_pSuite pSuite = NULL;
+  CU_pSuite pSuite2 = NULL;
 
   /* initialize the CUnit test registry */
   if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
@@ -40,6 +60,20 @@ int main() {
   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
   if ((NULL == CU_add_test(pSuite, "test of RevertString function",
                            testRevertString))) {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+  pSuite2 = CU_add_suite("Edge Suite", NULL, NULL);
+  if (NULL == pSuite2) {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+  /* add the tests to the suite */
+  /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
+  if ((NULL == CU_add_test(pSuite2, "test of RevertString function",
+                           testRevertString2))) {
     CU_cleanup_registry();
     return CU_get_error();
   }

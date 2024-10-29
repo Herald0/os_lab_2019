@@ -1,4 +1,5 @@
 #include "revert_string.h"
+#include "stdio.h"
 #include "string.h"
 
 void RevertString(char *str)
@@ -13,5 +14,8 @@ void RevertString(char *str)
 		str[i] = str[j];
 		str[j] = temp;
 	}
+	
+	printf("Revert string is complete.\n");
+	
 }
 

@@ -15,7 +15,6 @@
 #include "find_min_max.h"
 #include "utils.h"
 
-
 int main(int argc, char **argv) {
     int seed = -1;
     int array_size = -1;

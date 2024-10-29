@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -15,11 +16,23 @@
 #include "find_min_max.h"
 #include "utils.h"
 
+int pnum = -1;
+pid_t *child_pids = NULL;
+
+void handle_alarm(int sig) {
+    printf("Timeout reached. Terminating child processes...\n");
+    for (int i = 0; i < pnum; i++) {
+        if (child_pids[i] > 0) {
+            kill(child_pids[i], SIGKILL);
+        }
+    }
+    exit(1);
+}
 
 int main(int argc, char **argv) {
     int seed = -1;
     int array_size = -1;
-    int pnum = -1;
+    int timeout = -1;
     bool with_files = false;
 
     while (true) {
@@ -29,6 +42,7 @@ int main(int argc, char **argv) {
             {"seed", required_argument, 0, 0},
             {"array_size", required_argument, 0, 0},
             {"pnum", required_argument, 0, 0},
+            {"timeout", required_argument, 0, 0},
             {"by_files", no_argument, 0, 'f'},
             {0, 0, 0, 0}
         };
@@ -51,11 +65,14 @@ int main(int argc, char **argv) {
                         pnum = atoi(optarg);
                         break;
                     case 3:
+                        timeout = atoi(optarg);
+                        break;
+                    case 4:
                         with_files = true;
                         break;
-
+                    
                     default:
-                        printf("Index %d is out of optionsn", option_index);
+                        printf("Index %d is out of options\n", option_index);
                 }
                 break;
             case 'f':
@@ -66,17 +83,17 @@ int main(int argc, char **argv) {
                 break;
 
             default:
-                printf("getopt returned character code 0%o?n", c);
+                printf("getopt returned character code 0%o\n", c);
         }
     }
 
     if (optind < argc) {
-        printf("Has at least one no option argumentn");
+        printf("Has at least one no option argument\n");
         return 1;
     }
 
     if (seed == -1 || array_size == -1 || pnum == -1) {
-        printf("Usage: %s --seed \"num\" --array_size \"num\" --pnum \"num\" n", argv[0]);
+        printf("Usage: %s --seed \"num\" --array_size \"num\" --pnum \"num\" [--timeout \"num\"]\n", argv[0]);
         return 1;
     }
 
@@ -87,9 +104,20 @@ int main(int argc, char **argv) {
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
 
+    if (timeout > 0) {
+        signal(SIGALRM, handle_alarm);
+        alarm(timeout);
+    }
+
+    // while (1) {
+        
+    // }
+
+    child_pids = malloc(sizeof(pid_t) * pnum);
     for (int i = 0; i < pnum; i++) {
         pid_t child_pid = fork();
         if (child_pid >= 0) {
+            child_pids[i] = child_pid;
             active_child_processes += 1;
             if (child_pid == 0) 
             {
@@ -110,14 +138,12 @@ int main(int argc, char **argv) {
                     snprintf(filename, sizeof(filename), "minmax_%d.txt", i);
                     FILE *file = fopen(filename, "w");
                     if (file != NULL) {
-                        fprintf(file, "%d %d\n", min, max);
+                        fprintf(file, "%d %dn", min, max);
                         fclose(file);
-                    }
-                    else {
+                    } else {
                         perror("Error opening file");
                     }
-                }
-                else {
+                } else {
                     if (write(STDOUT_FILENO, &min, sizeof(min)) == -1) {
                         perror("Error writing min");
                     }
@@ -139,52 +165,57 @@ int main(int argc, char **argv) {
         active_child_processes -= 1;
     }
 
+    if (timeout > 0) {
+        alarm(0);
+    }
+
     struct MinMax min_max;
     min_max.min = INT_MAX;
     min_max.max = INT_MIN;
 
     for (int i = 0; i < pnum; i++) {
-        int min = INT_MAX;
-        int max = INT_MIN;
-    
-        if (with_files) {
-            char filename[25];
-            snprintf(filename, sizeof(filename), "minmax_%d.txt", i);
-            FILE *file = fopen(filename, "r");
-            if (file != NULL) {
-                if (fscanf(file, "%d %d", &min, &max) != 2) {
-                    perror("Error reading from file");
-                }
-                fclose(file);
+        int min = INT_MAX; 
+        int max = INT_MIN; 
+
+        if (with_files) { 
+            char filename[25]; 
+            snprintf(filename, sizeof(filename), "minmax_%d.txt", i); 
+            FILE *file = fopen(filename, "r"); 
+            if (file != NULL) { 
+                if (fscanf(file, "%d %d", &min, &max) != 2) { 
+                    perror("Error reading from file"); 
+                } 
+                fclose(file); 
+            }  
+            else { 
+                perror("Error opening file"); 
             } 
-            else {
-                perror("Error opening file");
-            }
-        }
-        else {
-            if (read(STDIN_FILENO, &min, sizeof(min)) == -1) {
-            perror("Error reading min");
-            }
-            if (read(STDIN_FILENO, &max, sizeof(max)) == -1) {
-            perror("Error reading max");
-            }
-        }
-    
-        if (min < min_max.min) min_max.min = min;
-        if (max > min_max.max) min_max.max = max;
-    }
+        } 
+        else { 
+            if (read(STDIN_FILENO, &min, sizeof(min)) == -1) { 
+                perror("Error reading min"); 
+            } 
+            if (read(STDIN_FILENO, &max, sizeof(max)) == -1) { 
+                perror("Error reading max"); 
+            } 
+        } 
 
-    struct timeval finish_time;
-    gettimeofday(&finish_time, NULL);
+        if (min < min_max.min) min_max.min = min; 
+        if (max > min_max.max) min_max.max = max; 
+    } 
 
-    double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
-    elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
+    struct timeval finish_time; 
+    gettimeofday(&finish_time, NULL); 
 
-    free(array);
+    double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0; 
+    elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0; 
 
-    printf("Min: %d\n", min_max.min);
-    printf("Max: %d\n", min_max.max);
-    printf("Time: %fms\n", elapsed_time);
+    free(array); 
+    free(child_pids);
 
-    return 0;
+    printf("Min: %d\n", min_max.min); 
+    printf("Max: %d\n", min_max.max); 
+    printf("Time: %fms\n", elapsed_time); 
+
+    return 0; 
 }

@@ -1,0 +1,7 @@
+sh background.sh &
+touch text.txt
+cat text.txt
+clear
+wc text.txt
+
+grep "cake" cake_rhymes.txt > with_cake.txt
