@@ -11,33 +11,18 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include "pthread.h"
+#include <pthread.h>
 
-struct FactorialArgs {
-  uint64_t begin;
-  uint64_t end;
-  uint64_t mod;
-};
-
-uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
-  uint64_t result = 0;
-  a = a % mod;
-  while (b > 0) {
-    if (b % 2 == 1)
-      result = (result + a) % mod;
-    a = (a * 2) % mod;
-    b /= 2;
-  }
-
-  return result % mod;
-}
+#include "factorial.h"
 
 uint64_t Factorial(const struct FactorialArgs *args) {
-  uint64_t ans = 1;
+    uint64_t ans = 1;
 
-  // TODO: your code here
+    for (uint64_t i = args->begin; i <= args->end; i++) {
+        ans = MultModulo(ans, i, args->mod);
+    }
 
-  return ans;
+    return ans % args->mod;
 }
 
 void *ThreadFactorial(void *args) {
@@ -67,11 +52,9 @@ int main(int argc, char **argv) {
       switch (option_index) {
       case 0:
         port = atoi(optarg);
-        // TODO: your code here
         break;
       case 1:
         tnum = atoi(optarg);
-        // TODO: your code here
         break;
       default:
         printf("Index %d is out of options\n", option_index);
@@ -154,17 +137,20 @@ int main(int argc, char **argv) {
       memcpy(&end, from_client + sizeof(uint64_t), sizeof(uint64_t));
       memcpy(&mod, from_client + 2 * sizeof(uint64_t), sizeof(uint64_t));
 
-      fprintf(stdout, "Receive: %llu %llu %llu\n", begin, end, mod);
+      fprintf(stdout, "Receive: %lu %lu %lu\n", begin, end, mod);
 
       struct FactorialArgs args[tnum];
-      for (uint32_t i = 0; i < tnum; i++) {
-        // TODO: parallel somehow
-        args[i].begin = 1;
-        args[i].end = 1;
-        args[i].mod = mod;
+      uint64_t range_size = (end - begin) / tnum;
 
-        if (pthread_create(&threads[i], NULL, ThreadFactorial,
-                           (void *)&args[i])) {
+      for (uint32_t i = 0; i < tnum; i++) {
+        
+        args[i].begin = begin + i * range_size;
+        args[i].end = (i == tnum - 1) ? (end) : begin + (i + 1) * range_size - 1;
+        args[i].mod = mod;
+        // printf("begin: %lu\n", args[i].begin);
+        // printf("end: %lu\n", args[i].end);
+
+        if (pthread_create(&threads[i], NULL, ThreadFactorial, (void *)&args[i])) {
           printf("Error: pthread_create failed!\n");
           return 1;
         }
@@ -177,7 +163,7 @@ int main(int argc, char **argv) {
         total = MultModulo(total, result, mod);
       }
 
-      printf("Total: %llu\n", total);
+      printf("Total: %lu\n", total);
 
       char buffer[sizeof(total)];
       memcpy(buffer, &total, sizeof(total));
